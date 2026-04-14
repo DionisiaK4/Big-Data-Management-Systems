@@ -31,8 +31,7 @@
   - [11.4 Scenario D – Admin Check-in / Checkout Flow](#114-scenario-d--admin-check-in--checkout-flow)
   - [11.5 Scenario E – Find Nearby Events](#115-scenario-e--find-nearby-events)
   - [11.6 Scenario F – Chat Flow](#116-scenario-f--chat-flow)
-- [12. Assumptions and Design Decisions](#12-assumptions-and-design-decisions)
-- [13. Future Improvements](#13-future-improvements)
+- [12. Future Improvements](#13-future-improvements)
 
 ---
 
@@ -286,3 +285,369 @@ Posts are stored in:
  
 ```bash
 python -m venv .venv
+```
+
+## 2. Install dependencies
+ 
+```bash
+pip install -r requirements.txt
+```
+ 
+## 3. Start Redis with Docker
+ 
+```bash
+docker run -d --name redis-local -p 6379:6379 redis:latest
+```
+ 
+## 4. Initialize the SQLite database
+ 
+```bash
+python scripts/init_db.py
+```
+---
+## 8. How to Run the Project
+ 
+Start the API server with:
+ 
+```bash
+uvicorn app.main:app --reload
+```
+ 
+Then open:
+ 
+```text
+http://127.0.0.1:8000/docs
+```
+ 
+This opens the FastAPI Swagger UI where you can test all endpoints interactively.
+
+---
+## 9. API Endpoints
+ 
+### 9.1 System / Utility Endpoints
+ 
+#### `GET /` : Basic root endpoint.
+ 
+#### `GET /health` : Returns API health status.
+ 
+#### `GET /redis-ping` : Checks whether Redis is reachable.
+ 
+#### `GET /db-check` : Checks whether the SQLite database is reachable and lists available tables.
+ 
+#### `GET /event-from-db/{event_id}` : Returns the raw event record from SQLite.
+ 
+#### `POST /sync-now` : Triggers an immediate synchronization between SQLite and Redis.
+ 
+### 9.2 Event Lifecycle Endpoints
+ 
+#### `POST /start-event/{event_id}` : Enables the event in SQLite and tries to load it into Redis immediately.
+ 
+Response:
+ 
+```json
+{"status": "ok", "loaded_now": true}
+```
+ 
+#### `POST /stop-event/{event_id}` : Disables the event in SQLite and unloads it from Redis.
+ 
+Response:
+ 
+```json
+{"status": "ok", "unloaded_now": true}
+```
+ 
+#### `GET /get-events` : Returns the list of currently active event ids from Redis.
+ 
+### 9.3 Participant Endpoints
+ 
+#### `POST /checkin/{event_id}` : Checks a user into an active event.
+ 
+Body:
+ 
+```json
+{
+  "email": "user@example.com"
+}
+```
+ 
+Returns:
+- `ok` if the user is allowed and not already checked in
+- `nok` otherwise
+ 
+#### `POST /checkout/{event_id}` : Checks a user out of an active event.
+ 
+Body:
+ 
+```json
+{
+  "email": "user@example.com"
+}
+```
+ 
+#### `GET /get-participants/{event_id}` : Returns the participants of the event in ascending order of join time.
+ 
+Example response:
+ 
+```json
+{
+  "event_id": 1,
+  "participants": [
+    {
+      "email": "user@example.com",
+      "timestamp_of_join": 1776181000
+    }
+  ]
+}
+```
+ 
+#### `GET /num-participants/{event_id}` : Returns the number of checked-in participants for the event.
+ 
+Example:
+ 
+```json
+{
+  "event_id": 1,
+  "count": 1
+}
+```
+ 
+### 9.4 Admin Participant Endpoints
+ 
+#### `POST /checkin-byadmin/{event_id}` : Checks in a user by admin action.
+ 
+Body:
+ 
+```json
+{
+  "email": "user@example.com"
+}
+```
+ 
+This bypasses the audience/private access restriction.
+ 
+#### `POST /checkout-byadmin/{event_id}` : Checks out a user by admin action.
+ 
+Body:
+ 
+```json
+{
+  "email": "user@example.com"
+}
+```
+ 
+### 9.5 Event Discovery Endpoint
+ 
+#### `POST /find-events`
+ 
+Body:
+ 
+```json
+{
+  "email": "user@example.com",
+  "x": 37.9838,
+  "y": 23.7275
+}
+```
+ 
+Returns:
+ 
+```json
+{
+  "event_ids": [1, 2]
+}
+```
+ 
+This endpoint:
+- looks up nearby active events
+- checks whether the user has access
+- filters results based on the event’s own radius
+ 
+In this implementation:
+- `x = latitude`
+- `y = longitude`
+ 
+### 9.6 Chat Endpoints
+ 
+#### `POST /post-to-chat/{event_id}`
+ 
+Body:
+ 
+```json
+{
+  "email": "user@example.com",
+  "text": "Hello everyone"
+}
+```
+ 
+Returns:
+- `ok` if the user is allowed to post
+- `nok` otherwise
+ 
+#### `GET /get-posts/{event_id}` : Returns all posts of a given event in ascending order of timestamp.
+ 
+Example:
+ 
+```json
+{
+  "event_id": 1,
+  "posts": [
+    {
+      "timestamp": 1776181000,
+      "email": "user@example.com",
+      "text": "Hello everyone"
+    }
+  ]
+}
+```
+ 
+#### `GET /get-user-posts/{email}` : Returns all posts written by a given user in ascending order of timestamp.
+ 
+Example:
+ 
+```json
+{
+  "email": "user@example.com",
+  "posts": [
+    {
+      "timestamp": 1776181000,
+      "text": "Hello everyone"
+    }
+  ]
+}
+```
+ 
+---
+ 
+## 10. Testing Through /docs
+ 
+After starting the app, open:
+ 
+```text
+http://127.0.0.1:8000/docs
+```
+ 
+From there, you can:
+- expand any endpoint
+- click `Try it out`
+- provide request parameters/body
+- execute the request
+- inspect the JSON response
+ 
+---
+ 
+## 11. Complete Testing Scenarios
+ 
+### 11.1 Scenario A – Startup and Health Check
+ 
+1. Start Redis (via Docker)
+2. Initialize the database (as described in unit 7)
+3. Start FastAPI (as described in unit 8)
+4. Open `/docs`
+ 
+Test:
+- `GET /health`
+- `GET /redis-ping`
+- `GET /db-check`
+ 
+Expected result:
+- API responds successfully
+- Redis responds successfully
+- SQLite tables exist
+ 
+### 11.2 Scenario B – Load and Unload an Event
+ 
+1. Run `POST /sync-now`
+2. Run `GET /get-events`
+3. Confirm that currently live sample event ids appear
+4. Run `POST /stop-event/{event_id}`
+5. Run `GET /get-events` again
+6. Confirm that the event disappeared
+7. Run `POST /start-event/{event_id}`
+8. Run `GET /get-events` again
+ 
+Expected result:
+- the event is removed and re-added correctly
+ 
+### 11.3 Scenario C – Check-in / Checkout Flow
+ 
+1. Make sure an event is active
+2. Call `POST /checkin/{event_id}` with:
+ 
+```json
+{"email": "alice@example.com"}
+```
+ 
+3. Call `GET /get-participants/{event_id}`
+4. Call `GET /num-participants/{event_id}`
+5. Call `POST /checkout/{event_id}`
+6. Call `GET /num-participants/{event_id}` again
+ 
+Expected result:
+- check-in succeeds
+- participant appears in list
+- count increases
+- checkout succeeds
+- count returns to zero
+ 
+### 11.4 Scenario D – Admin Check-in / Checkout Flow
+ 
+Use a user that would normally not have access to a private event.
+ 
+1. Call `POST /checkin-byadmin/{event_id}`
+2. Confirm with `GET /get-participants/{event_id}`
+3. Call `POST /checkout-byadmin/{event_id}`
+ 
+Expected result:
+- admin check-in succeeds even for a restricted user
+- admin checkout removes the user correctly
+ 
+### 11.5 Scenario E – Find Nearby Events
+ 
+1. Make sure there is an active event in Redis
+2. Call `POST /find-events` with coordinates near the sample event location
+3. Use an allowed email for a private event, or any email for a public event
+ 
+Example:
+ 
+```json
+{
+  "email": "alice@example.com",
+  "x": 37.9838,
+  "y": 23.7275
+}
+```
+ 
+Expected result:
+- nearby active accessible event ids are returned
+ 
+### 11.6 Scenario F – Chat Flow
+ 
+1. Make sure the event is active
+2. Check in a user
+3. Call `POST /post-to-chat/{event_id}`
+4. Call `GET /get-posts/{event_id}`
+5. Call `GET /get-user-posts/{email}`
+ 
+Example post body:
+ 
+```json
+{
+  "email": "alice@example.com",
+  "text": "Hello from Redis chat"
+}
+```
+ 
+Expected result:
+- post succeeds
+- event chat returns the message
+- user posts return the same message
+
+
+---
+
+## 12. Future Improvements
+Possible improvements include:
+- adding a front-end for easier demonstration,
+- adding proper authentication and admin authorization,
+- adding automatic Redis key expiration,
+- using PostgreSQL instead of SQLite for larger-scale persistence.
