@@ -90,6 +90,7 @@ This project uses:
 - **SQLite** for persistent event and log storage
 - **Uvicorn** as the ASGI server
 - **Docker** to run Redis locally
+- **Pydantic** for request body validation and data models
 
 ---
 
@@ -112,7 +113,7 @@ event-service/
 ```
 
 ### `app/main.py`
-Contains the FastAPI application and all exposed API endpoints.
+Contains the FastAPI application, the exposed API endpoints and the Pydantic request models used for request validation.
  
 ### `app/db.py`
 Creates and returns SQLite connections to the local database file in `data/app.db`.
@@ -191,13 +192,16 @@ Redis stores only the active/live data.
  
 #### Event metadata
 - `event:{id}:meta` → `HASH`
+  - `id`
   - `title`
   - `subtitle`
   - `lat`
   - `lon`
-  - `radius`
-  - `timestamps`
-  - `visibility info`
+  - `radius_m`
+  - `start_ts`
+  - `end_ts`
+  - `chat_enabled`
+  - `is_public`
  
 #### Event audience
 - `event:{id}:audience` → `SET` of allowed emails
