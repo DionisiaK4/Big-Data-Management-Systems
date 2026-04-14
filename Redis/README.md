@@ -537,7 +537,7 @@ From there, you can:
  
 ## 11. Complete Testing Scenarios
  
-### 11.1 Scenario A – Startup and Health Check
+### 11.1 Scenario A: Startup and Health Check
  
 1. Start Redis (via Docker)
 2. Initialize the database (as described in unit 7)
@@ -554,11 +554,11 @@ Expected result:
 - Redis responds successfully
 - SQLite tables exist
  
-### 11.2 Scenario B – Load and Unload an Event
+### 11.2 Scenario B: Load and Unload an Event
  
 1. Run `POST /sync-now`
 2. Run `GET /get-events`
-3. Confirm that currently live sample event ids appear
+3. Confirm that currently live sample event ids appear (when starting the app immediately after initializing the database, the currently live event ID is 1)
 4. Run `POST /stop-event/{event_id}`
 5. Run `GET /get-events` again
 6. Confirm that the event disappeared
@@ -568,9 +568,9 @@ Expected result:
 Expected result:
 - the event is removed and re-added correctly
  
-### 11.3 Scenario C – Check-in / Checkout Flow
+### 11.3 Scenario C: Check-in / Checkout Flow
  
-1. Make sure an event is active
+1. Make sure an event is active (when starting the app immediately after initializing the database, the currently live event ID is 1)
 2. Call `POST /checkin/{event_id}` with:
  
 ```json
@@ -589,7 +589,7 @@ Expected result:
 - checkout succeeds
 - count returns to zero
  
-### 11.4 Scenario D – Admin Check-in / Checkout Flow
+### 11.4 Scenario D: Admin Check-in / Checkout Flow
  
 Use a user that would normally not have access to a private event.
  
@@ -601,11 +601,11 @@ Expected result:
 - admin check-in succeeds even for a restricted user
 - admin checkout removes the user correctly
  
-### 11.5 Scenario E – Find Nearby Events
+### 11.5 Scenario E: Find Nearby Events
  
-1. Make sure there is an active event in Redis
+1. Make sure there is an active event in Redis (when starting the app immediately after initializing the database, the currently live event ID is 1)
 2. Call `POST /find-events` with coordinates near the sample event location
-3. Use an allowed email for a private event, or any email for a public event
+3. Use an allowed email for a private event, or any email for a public event (here event 1)
  
 Example:
  
@@ -620,10 +620,10 @@ Example:
 Expected result:
 - nearby active accessible event ids are returned
  
-### 11.6 Scenario F – Chat Flow
+### 11.6 Scenario F: Chat Flow
  
-1. Make sure the event is active
-2. Check in a user
+1. Make sure the event is active (when starting the app immediately after initializing the database, the currently live event ID is 1)
+2. Check in a user (here alice@example.com, as the event is public)
 3. Call `POST /post-to-chat/{event_id}`
 4. Call `GET /get-posts/{event_id}`
 5. Call `GET /get-user-posts/{email}`
