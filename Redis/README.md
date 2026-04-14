@@ -327,6 +327,8 @@ This opens the FastAPI Swagger UI where you can test all endpoints interactively
 
 ---
 ## 9. API Endpoints
+
+To test the endpoints, go to [11. Complete Testing Scenarios](#11-complete-testing-scenarios)
  
 ### 9.1 System / Utility Endpoints
  
