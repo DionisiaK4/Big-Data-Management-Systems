@@ -25,12 +25,12 @@
   - [9.6 Chat Endpoints](#96-chat-endpoints)
 - [10. Testing Through /docs](#10-testing-through-docs)
 - [11. Complete Testing Scenarios](#11-complete-testing-scenarios)
-  - [11.1 Scenario A – Startup and Health Check](#111-scenario-a--startup-and-health-check)
-  - [11.2 Scenario B – Load and Unload an Event](#112-scenario-b--load-and-unload-an-event)
-  - [11.3 Scenario C – Check-in / Checkout Flow](#113-scenario-c--check-in--checkout-flow)
-  - [11.4 Scenario D – Admin Check-in / Checkout Flow](#114-scenario-d--admin-check-in--checkout-flow)
-  - [11.5 Scenario E – Find Nearby Events](#115-scenario-e--find-nearby-events)
-  - [11.6 Scenario F – Chat Flow](#116-scenario-f--chat-flow)
+  - [11.1 Scenario A: Startup and Health Check](#111-scenario-a--startup-and-health-check)
+  - [11.2 Scenario B: Load and Unload an Event](#112-scenario-b--load-and-unload-an-event)
+  - [11.3 Scenario C: Check-in / Checkout Flow](#113-scenario-c--check-in--checkout-flow)
+  - [11.4 Scenario D: Admin Check-in / Checkout Flow](#114-scenario-d--admin-check-in--checkout-flow)
+  - [11.5 Scenario E: Find Nearby Events](#115-scenario-e--find-nearby-events)
+  - [11.6 Scenario F: Chat Flow](#116-scenario-f--chat-flow)
 - [12. Future Improvements](#13-future-improvements)
 
 ---
