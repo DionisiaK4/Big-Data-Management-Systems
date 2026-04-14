@@ -111,3 +111,178 @@ event-service/
   requirements.txt
   README.md
 ```
+
+### `app/main.py`
+Contains the FastAPI application and all exposed API endpoints.
+ 
+### `app/db.py`
+Creates and returns SQLite connections to the local database file in `data/app.db`.
+ 
+### `app/redis_client.py`
+Creates the Redis client connection and provides a basic Redis health check.
+ 
+### `app/event_service.py`
+Contains the core business logic of the application:
+- loading and unloading events to/from Redis
+- checking user access
+- handling check-in / checkout
+- searching nearby events
+- posting and reading chat messages
+- writing logs to SQLite
+ 
+### `app/scheduler.py`
+Contains the background scheduler loop that runs every minute and synchronizes currently live events between SQLite and Redis.
+ 
+### `scripts/init_db.py`
+Initializes the SQLite database, creates the required tables, and inserts sample events for testing.
+ 
+### `data/app.db`
+The SQLite database file created after initialization.
+ 
+### `requirements.txt`
+Contains the Python dependencies needed to run the project.
+ 
+### `README.md`
+Project documentation, setup instructions, endpoint description, and testing scenarios.
+ 
+---
+ 
+## 5. Data Model
+ 
+### 5.1 Main Database (SQLite)
+ 
+SQLite is used as the persistent database.
+ 
+It currently contains two main tables:
+ 
+#### `events`
+Stores the permanent definition of events.
+ 
+Fields:
+- `id`
+- `title`
+- `subtitle`
+- `lat`
+- `lon`
+- `radius_m`
+- `start_ts`
+- `end_ts`
+- `special_participants`
+- `audience`
+- `chat_enabled`
+- `enabled`
+ 
+#### `logs`
+Stores log entries for important actions.
+ 
+Fields:
+- `id`
+- `event_id`
+- `email`
+- `action`
+- `ts`
+- `details`
+ 
+### 5.2 Redis Keys
+ 
+Redis stores only the active/live data.
+ 
+#### Active events
+- `active:events` → `SET` of active event ids
+ 
+#### Event metadata
+- `event:{id}:meta` → `HASH`
+  - `title`
+  - `subtitle`
+  - `lat`
+  - `lon`
+  - `radius`
+  - `timestamps`
+  - `visibility info`
+ 
+#### Event audience
+- `event:{id}:audience` → `SET` of allowed emails
+ 
+#### Special participants
+- `event:{id}:special` → `SET` of special participant emails
+ 
+#### Event participants
+- `event:{id}:participants` → `SORTED SET`
+  - member = email
+  - score = timestamp of join
+ 
+#### Geospatial event index
+- `geo:events` → Redis geo index for active event locations
+ 
+#### Event chat
+- `event:{id}:chat` → `STREAM`
+ 
+#### User posts
+- `user:{email}:posts` → `STREAM`
+ 
+---
+ 
+## 6. How the System Works
+ 
+### 6.1 Persistent Storage vs Redis
+ 
+The project separates data into two layers:
+ 
+#### SQLite
+Stores the permanent event definitions and logs.
+ 
+#### Redis
+Stores only the events that are currently active and the live data needed for fast operations:
+- active event set
+- participants
+- chat
+- geospatial lookup
+ 
+This allows the API to answer live queries quickly while still keeping persistent data in SQLite.
+ 
+### 6.2 Scheduler Logic
+ 
+A scheduler runs every 60 seconds.
+ 
+Its job is to:
+1. read all enabled and currently live events from SQLite
+2. load them into Redis if they are not already active
+3. remove expired or disabled events from Redis
+ 
+This keeps Redis synchronized with the current event state.
+ 
+### 6.3 Event Access Logic
+ 
+An event can be:
+ 
+#### Public
+If the audience list is empty, any user can access the event.
+ 
+#### Private
+If the audience list is not empty, only:
+- listed audience emails, or
+- special participants
+ 
+may access the event.
+ 
+Admin check-in bypasses this restriction.
+ 
+### 6.4 Chat Logic
+ 
+A user can post to an event chat only if:
+- the event is active
+- chat is enabled for the event
+- the user is checked in or is a special participant
+ 
+Posts are stored in:
+- the event stream
+- and also in a per-user stream for fast retrieval of user posts
+ 
+---
+ 
+## 7. Setup Instructions
+ 
+### 1. Create and activate a virtual environment
+ 
+```bash
+python -m venv .venv
