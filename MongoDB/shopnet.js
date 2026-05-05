@@ -1,4 +1,4 @@
-// Select database: it will be created but not shown in the beginning beacuse it is empty
+// Select database: it will be created but not shown in the beginning because it is empty
 use("shopnest");
 
 // Clear old data collections if they exist
@@ -9,7 +9,6 @@ db.vendors.drop();
 
 print("ShopNest database initialized successfully.");
  
-
 // Create Basic Indexes
 
 // Ensures each product SKU is unique and supports fast product lookup by SKU.
@@ -33,10 +32,6 @@ db.orders.createIndex(
 db.products.createIndex(
   { name: "text", tags: "text", category: "text" }
 );
-
-//TODO
-// Supports product grouping and vendor-related reporting.
-// db.products.createIndex({ vendor_id: 1 });
 
 
 // Insert Seed Data
@@ -82,6 +77,8 @@ async function insertProductSafe(product) {
     console.log(`Skipped (exists): ${product.sku}`);
   }
 }
+// Test insertProductSafe and Implement bulk price update below: async function main()
+
 
 // Queries
 
@@ -95,6 +92,8 @@ async function printQueryResults(title, cursor, description) {
   console.log("\nFirst 3 result documents:");
   printjson(await cursor.limit(3).toArray());
 }
+// Implement the 6 queries below: async function main()
+
 
 // Aggregation Pipelines
 
@@ -109,7 +108,6 @@ async function printAggregationResults(title, collection, pipeline, description)
   printjson(await collection.aggregate(pipeline).toArray());
 }
  
-
 // 1. Revenue by category
 const revenueByCategoryPipeline = [
   {
@@ -464,8 +462,10 @@ const vendorPerformancePipeline = [
   }
 ];
 
+// Implement the 6 aggregation pipelines below: async function main()
+
 async function main() {
-    // Test insertProductSafe: The first call should insert, the second call with the same SKU should skip due to duplicate detection.
+    //insertProductSafe: The first call should insert, the second call with the same SKU should skip due to duplicate detection.
     await insertProductSafe({
         sku: "SNT-9999",
         name: "Test Widget",
@@ -512,7 +512,7 @@ async function main() {
     console.log(`Matched documents: ${discountResult.matchedCount}`);
     console.log(`Modified documents: ${discountResult.modifiedCount}`);
 
-
+    // Queries
     // 1. Simple field filter + projection 
     await printQueryResults(
     "Query 1: Books with good ratings and in stock, sorted by price",
@@ -653,7 +653,8 @@ async function main() {
     "This query returns delivered orders placed within the last 30 days of the seed dataset, sorted from newest to oldest."
     );
 
-
+    // Aggregation Pipelines
+    // 1. Revenue by category
     await printAggregationResults(
     "Aggregation 1: Revenue by category",
     db.orders,
@@ -661,6 +662,7 @@ async function main() {
     "This aggregation computes total delivered-order revenue and the number of distinct products sold for each product category."
     );
 
+    // 2. Customer lifetime value
     await printAggregationResults(
     "Aggregation 2: Customer lifetime value",
     db.orders,
@@ -668,6 +670,7 @@ async function main() {
     "This aggregation calculates each customer's order count, delivered-order spending, average order value, and favourite delivered-order category, then returns the top 10 customers by spending."
     );
 
+    // 3. Full-text search
     await printAggregationResults(
     "Aggregation 3: Monthly sales trend",
     db.orders,
@@ -675,6 +678,7 @@ async function main() {
     "This aggregation groups orders by month and computes delivered-order revenue, order count, and average order value for each month in the dataset."
     );
 
+    // 4. Vendor performance report using $lookup + $group 
     await printAggregationResults(
         "Aggregation 4: Vendor performance report",
         db.orders,

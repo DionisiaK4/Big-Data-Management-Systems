@@ -26,8 +26,6 @@ const customerIds = {
 
 
 //Vendors (at least 3 vendors from different countries)
-
-// Use await to ensure that the insertMany operation completes before moving on to the next line of code (another insertMany operation), because I need the vendor ObjectIds to be present in the database before I can reference them in products.
 db.vendors.insertMany([
   {
     _id: vendorIds.techHaven,
@@ -56,7 +54,6 @@ db.vendors.insertMany([
 // Products (at least 20 products across different categories, referencing the correct vendor ObjectIds)
 // Create 20 oproducts across 5 categories (Electronics, Books, Clothing, Home, Wellness)
 // for simplicity I use a objects to store the products and then insert them all at once.
-
 const productCatalog = {
   wirelessHeadphones: {
     _id: new ObjectId(),
@@ -305,7 +302,6 @@ const productCatalog = {
 };
 
 // Insert Products into the database. 
-// Use await because I need the product ObjectIds to be present in the database before I can reference them in orders.
 db.products.insertMany(
   Object.values(productCatalog).map(product => ({
     _id: product._id,
@@ -325,9 +321,7 @@ db.products.insertMany(
 );
 
 
-
 // Customers (at least 10 customers  with a mix of tiers and countries)
-// Use await because I need the customer ObjectIds to be present in the database before I can reference them in orders.
 db.customers.insertMany([
   {
     _id: customerIds.eleni,
