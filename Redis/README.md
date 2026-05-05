@@ -25,12 +25,12 @@
   - [9.6 Chat Endpoints](#96-chat-endpoints)
 - [10. Testing Through /docs](#10-testing-through-docs)
 - [11. Complete Testing Scenarios](#11-complete-testing-scenarios)
-  - [11.1 Scenario A – Startup and Health Check](#111-scenario-a--startup-and-health-check)
-  - [11.2 Scenario B – Load and Unload an Event](#112-scenario-b--load-and-unload-an-event)
-  - [11.3 Scenario C – Check-in / Checkout Flow](#113-scenario-c--check-in--checkout-flow)
-  - [11.4 Scenario D – Admin Check-in / Checkout Flow](#114-scenario-d--admin-check-in--checkout-flow)
-  - [11.5 Scenario E – Find Nearby Events](#115-scenario-e--find-nearby-events)
-  - [11.6 Scenario F – Chat Flow](#116-scenario-f--chat-flow)
+  - [11.1 Scenario A: Startup and Health Check](#111-scenario-a--startup-and-health-check)
+  - [11.2 Scenario B: Load and Unload an Event](#112-scenario-b--load-and-unload-an-event)
+  - [11.3 Scenario C: Check-in / Checkout Flow](#113-scenario-c--check-in--checkout-flow)
+  - [11.4 Scenario D: Admin Check-in / Checkout Flow](#114-scenario-d--admin-check-in--checkout-flow)
+  - [11.5 Scenario E: Find Nearby Events](#115-scenario-e--find-nearby-events)
+  - [11.6 Scenario F: Chat Flow](#116-scenario-f--chat-flow)
 - [12. Future Improvements](#13-future-improvements)
 
 ---
@@ -90,6 +90,7 @@ This project uses:
 - **SQLite** for persistent event and log storage
 - **Uvicorn** as the ASGI server
 - **Docker** to run Redis locally
+- **Pydantic** for request body validation and data models
 
 ---
 
@@ -112,7 +113,7 @@ event-service/
 ```
 
 ### `app/main.py`
-Contains the FastAPI application and all exposed API endpoints.
+Contains the FastAPI application, the exposed API endpoints and the Pydantic request models used for request validation.
  
 ### `app/db.py`
 Creates and returns SQLite connections to the local database file in `data/app.db`.
@@ -191,13 +192,16 @@ Redis stores only the active/live data.
  
 #### Event metadata
 - `event:{id}:meta` → `HASH`
+  - `id`
   - `title`
   - `subtitle`
   - `lat`
   - `lon`
-  - `radius`
-  - `timestamps`
-  - `visibility info`
+  - `radius_m`
+  - `start_ts`
+  - `end_ts`
+  - `chat_enabled`
+  - `is_public`
  
 #### Event audience
 - `event:{id}:audience` → `SET` of allowed emails
@@ -323,6 +327,8 @@ This opens the FastAPI Swagger UI where you can test all endpoints interactively
 
 ---
 ## 9. API Endpoints
+
+To test the endpoints, go to [11. Complete Testing Scenarios](#11-complete-testing-scenarios)
  
 ### 9.1 System / Utility Endpoints
  
