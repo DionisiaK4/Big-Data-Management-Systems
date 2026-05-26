@@ -18,7 +18,8 @@ The provided CSV files are imported into Neo4j and transformed into:
   - `FRIENDS_WITH`
   - `LIKES`
 
----
+![FRIENDS_WITH](assets/rel1.png)
+![LIKES](assets/rel2.png)
 
 ## Dataset Description
 
@@ -85,9 +86,11 @@ project-root/
 ├── cypher/
 │   └── queries.cypher
 │
-├── .env.example
+├── assets/
+│   └── ...
+│
+├── .env
 ├── .gitignore
-├── requirements.txt
 └── README.md
 ```
 
@@ -103,15 +106,11 @@ project-root/
 3. Set username and password
 4. Use the default database named `neo4j`
 
----
-
 ## Install Required Python Libraries
 
 ```bash
 pip install neo4j pandas python-dotenv
 ```
-
----
 
 ## Configure Environment Variables
 
@@ -123,8 +122,6 @@ NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=your_password
 NEO4J_DATABASE=neo4j
 ```
-
----
 
 ## Run the Import Script
 
@@ -139,8 +136,6 @@ This script:
 - creates `FRIENDS_WITH` relationships,
 - creates `LIKES` relationships.
 
----
-
 ## Run Cypher Queries
 
 Open Neo4j Browser and execute the queries from:
@@ -153,18 +148,36 @@ cypher/queries.cypher
 
 ## a. List all people
 
+![](assets/1.png)
+
 ## b. Find all friends of Alice
+
+![](assets/2.png)
 
 ## c. Find all people living in Paris
 
+![](assets/3.png)
+
 ## d. Find all friendship pairs (name1, name2) with the year they became friends
+
+![](assets/4.png)
 
 ## e. Count number of friends each person has
 
+![](assets/5.png)
+
 ## f. Find all people who like Cooking
+
+![](assets/6.png)
 
 ## g. Find friends who share at least one hobby
 
+![](assets/7.png)
+
 ## h. Count hobbies by city
 
+![](assets/8.png)
+
 ## i. Most popular hobby
+
+![](assets/9.png)
