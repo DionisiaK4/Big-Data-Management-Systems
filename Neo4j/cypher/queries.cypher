@@ -1,9 +1,9 @@
 //Check if everything exists
 MATCH (n)
-RETURN labels(n), count(n);
+RETURN labels(n) AS labels, count(n) AS count;
 
 MATCH ()-[r]->()
-RETURN type(r), count(r);
+RETURN type(r) AS relationship_type, count(r) AS count;
 
 
 //Query a: List all people
