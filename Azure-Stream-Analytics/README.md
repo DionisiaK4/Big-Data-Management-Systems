@@ -1,103 +1,425 @@
-# Intro
+# Stream Engines: Azure Stream Analytics
 
-# The idea
+## Repository Structure
 
-Το Event Hub είναι η “ουρά/είσοδος” όπου πέφτουν συνεχώς οι ATM συναλλαγές. Το Azure Stream Analytics είναι η μηχανή που διαβάζει αυτά τα events σε πραγματικό χρόνο και τρέχει SQL-like queries πάνω σε χρονικά παράθυρα. Το Blob Storage είναι το σημείο όπου αποθηκεύονται τα αποτελέσματα ως JSON αρχεία.
+The repository is organized as follows:
 
-Οι έννοιες
-Event
+```text
+outputs/
+queries/
+screenshots/
+src/
+.gitignore
+README.md
+report.md
+requirements.txt
+report.pdf
+```
 
-Ένα event είναι μία ATM συναλλαγή.
+- outputs/: contains sample JSON output files downloaded from Azure Blob Storage after running the Stream Analytics jobs.
+- queries/: contains the SQL queries used by the five Azure Stream Analytics jobs.
+- screenshots/: contains the screenshots used to document the Azure setup, generator execution, Stream Analytics jobs, and Blob Storage outputs.
+- src/: contains the Python event generator script.
+- .gitignore: excludes local files that should not be committed, such as .env and the virtual environment.
+- report.md: contains the detailed project documentation and implementation report.
+- requirements.txt: lists the Python dependencies required to run the event generator.
+- report.pdf: the final report of the assignment
 
-Το script παράγει τέτοια events κάθε 0.5 δευτερόλεπτα. Το script κάνει simulate ATM events.
+## Introduction
 
-Event Hub
+This project implements a real-time stream processing pipeline using Azure Event Hubs, Azure Stream Analytics, and Azure Blob Storage. The goal is to simulate ATM transaction events, process them in real time, and store the aggregated results as JSON files.
 
-Το Event Hub είναι το ingestion layer. Δεν κάνει ανάλυση. Απλώς δέχεται πολλά events γρήγορα και τα κρατά ώστε να τα διαβάσουν άλλα services. Η Microsoft το περιγράφει ως fully managed real-time streaming platform για ingestion πολλών events με χαμηλό latency.
+The overall architecture of the project is:
 
-Stream Analytics Job
+`Python ATM Generator → Azure Event Hub → Azure Stream Analytics Jobs → Azure Blob Storage`
 
-Ένα Stream Analytics job έχει τρία βασικά μέρη:
+The Python event generator simulates ATM transactions and continuously sends them to Azure Event Hub. Each generated event represents a single ATM transaction and includes fields such as the event timestamp, ATM area, ATM identifier, account identifier, transaction type, transaction amount, and currency.
 
-Input → Query → Output
+Azure Event Hub acts as the ingestion layer of the pipeline. It receives the continuous stream of ATM transaction events and makes them available to downstream services. It does not perform any analysis itself; its role is to collect and hold the incoming events so they can be processed in real time.
 
-Στη δική σου εργασία:
+Azure Stream Analytics is used as the stream processing engine. It reads the events from the Event Hub and applies SQL-like queries over time-based windows. Each Stream Analytics job follows the same basic structure:
 
-Event Hub → SQL-like query με windows → Blob Storage JSON files
+`Input → Query → Output`
 
-Η Microsoft επίσης περιγράφει ότι ένα Stream Analytics job αποτελείται από input, query και output, και το output καλείται μέσα στο query με INTO.
+In this project, the input is the Event Hub, the query performs a specific aggregation or detection task, and the output is written to Azure Blob Storage.
 
-Windowing
+Azure Blob Storage is used as the final storage layer. Each task writes its results to a separate Blob container in JSON format. This makes it possible to verify that the Stream Analytics jobs produced valid output files for all required tasks.
 
-Επειδή τα δεδομένα έρχονται συνεχώς, δεν μπορείς απλώς να πεις “κάνε GROUP BY σε όλα”. Πρέπει να πεις “υπολόγισε κάτι για τα τελευταία Χ λεπτά/δευτερόλεπτα”. Αυτό είναι το windowing. Το Azure Stream Analytics υποστηρίζει time windows όπως Tumbling, Hopping, Sliding και Session.
+The project includes five Stream Analytics tasks:
 
-Τα τρία που χρειάζεσαι:
+1. Transaction volume per area using a tumbling window.
+2. High-value withdrawals using a hopping window.
+3. Burst activity detection per account using a sliding window.
+4. Average withdrawal amount per area using a tumbling window.
+5. Transaction type distribution per area using a hopping window.
 
-Tumbling window: μη επικαλυπτόμενα παράθυρα.
-Παράδειγμα: κάθε 1 λεπτό βγάζει ένα αποτέλεσμα για το προηγούμενο ακριβώς λεπτό.
+The implementation demonstrates how real-time events can be ingested, processed with window-based stream queries, and stored automatically as structured output files in Azure.
 
-00:00-01:00
-01:00-02:00
-02:00-03:00
+## Azure Environment Setup
 
-Hopping window: επικαλυπτόμενα παράθυρα. Έχει window size και hop size.
-Παράδειγμα: “τελευταία 10 λεπτά, κάθε 1 λεπτό”. Άρα κάθε λεπτό βγάζει αποτέλεσμα κοιτώντας πίσω 10 λεπτά.
+### 1. Resource Group
 
-00:00-10:00
-01:00-11:00
-02:00-12:00
+Created a Resource Group to organize all Azure resources used in the assignment.
 
-Sliding window: βγάζει αποτέλεσμα όταν αλλάζει κάτι μέσα στο παράθυρο. Χρήσιμο για detection τύπου “αν μέσα σε 30 δευτερόλεπτα έγιναν 3+ transactions”.
+A Resource Group acts as a logical "folder" where related Azure services are grouped together. In this project, it contains the Event Hubs resources, the Storage Account, and later the Stream Analytics jobs. This makes the setup easier to manage, monitor and clean up.
 
-Το generator στέλνει events σαν JSON, άρα τα queries του Azure Stream Analytics μπορούν να χρησιμοποιήσουν απευθείας αυτά τα field names.
+### 2. Event Hubs Namespace
 
-# Set Up
+Created an Event Hubs Namespace to group and manage the Event Hub used in this project. The namespace acts as the parent "container" for the Event Hub that receives the real-time ATM transaction events generated by the Python script.
 
-Για το Event Hub (Partitions)
-Η ροή είναι:
-Python generator → Event Hub partitions → Stream Analytics input → Query → Output
-↓
-Blob ή SQL Database
+![Resource Group and Event Hubs Namespace](screenshots/1.png)
 
-Αλλά για τη δική σου εργασία, με generator που στέλνει ένα event κάθε 0.5 δευτερόλεπτα, αυτό δεν θα σου αλλάξει πρακτικά τίποτα στο output.
+\*\***Note**: Throughout the setup, I use France Central as the selected region, because it is included in the eligible list of locations available for my Azure for Students subscription, as shown below:
 
-# Generator
+![](screenshots/region_justification.png)
 
-# Stream Analytics jobs
+![Event Hubs Namespace](screenshots/2.png)
+![Event Hubs Namespace](screenshots/3.png)
 
-# Tasks
+### 3. Event Hub
 
-# Outputs
+Created an Event Hub for real-time ingestion of ATM transaction events.
 
-# Extra
+![Event Hub](screenshots/4.png)
 
-Blob Storage = αποθήκευση αποτελεσμάτων ως αρχεία. Azure SQL Database = αποθήκευση αποτελεσμάτων ως γραμμές σε πίνακες.
+\*\***Note**: The Event Hub was configured with Partition Count = 2.
 
-# GENERAL
+Partitions define how incoming events are internally distributed and read within the Event Hub. They allow the event stream to be split into multiple parallel sequences.
 
-Title Page
+For example:
 
-1. Introduction
-2. Scenario and Data Description
-3. Architecture
+- 1 partition → all events are written into one stream
+- 2 partitions → events can be distributed across two streams
 
-   Python ATM Generator
-   ↓
-   Azure Event Hub
-   ↓
-   Azure Stream Analytics Jobs
-   ↓
-   Azure Blob Storage Containers
-   ↓
-   JSON files + Report screenshots
+In the provided _atm_generator.py script_, each event is sent using _accountId_ as the _partition key_. This means that all events belonging to the same account are consistently routed to the same partition, while events from different accounts can be distributed across the available partitions.
 
-4. Azure Environment Setup
-5. Event Generator
-6. Stream Analytics Jobs
-   6.1 Task 1 – Transaction Volume per Area
-   6.2 Task 2 – High-Value Withdrawals
-   6.3 Task 3 – Burst Activity per Account
-   6.4 Task 4 – Average Withdrawal Amount per Area
-   6.5 Task 5 – Transaction Type Distribution
-7. Output Validation
-8. GitHub Repository
+This configuration is useful because it keeps events for the same account logically grouped, while still allowing the Event Hub to distribute traffic across more than one partition.
+
+![Event Hub](screenshots/5.png)
+![Event Hub](screenshots/6.png)
+
+### 4. Shared Access Policy
+
+Created a dedicated send policy for the Python event generator.
+
+The access key is stored locally in `.env` and is not committed to GitHub.
+
+![Event Hub](screenshots/7.png)
+![Event Hub](screenshots/8.png)
+
+### 5. Consumer Groups
+
+Created separate consumer groups for the five Stream Analytics jobs, so each job can independently read the same event stream.
+
+- cg-task1
+- cg-task2
+- cg-task3
+- cg-task4
+- cg-task5
+
+A Consumer Group can be understood as an independent view of the same Event Hub stream. It does not duplicate the data. Instead, it allows each consumer to keep its own reading position.
+
+For example:
+
+- cg-task1 reads the stream to calculate transaction volume per area
+- cg-task2 reads the same stream to detect high-value withdrawals
+- cg-task3 reads the same stream to detect burst activity per account
+
+All Stream Analytics jobs read the same ATM events, but each job applies a different query and writes to a different output. By assigning a separate consumer group to each job, every job can process the full stream independently.
+
+If all jobs used the same consumer group, they would share the same reading group, which could cause conflicts or unexpected behavior when multiple readers access the same partitions. For this reason, one consumer group per Stream Analytics job is a cleaner and safer setup.
+
+Each job will later use the same Event Hub as input, but it will write its results to its own Blob container.
+
+![Event Hub](screenshots/9.png)
+![Event Hub](screenshots/10.png)
+
+### 6. Storage Account
+
+Created a Storage Account to store the JSON outputs produced by the Stream Analytics jobs.
+
+![Event Hub](screenshots/11.png)
+![Event Hub](screenshots/12.png)
+![Event Hub](screenshots/13.png)
+
+### 7. Blob Containers
+
+Created five private Blob containers, one for each Stream Analytics task.
+
+- task1-volume-area
+- task2-high-value-withdrawals
+- task3-burst-account
+- task4-avg-withdrawal-area
+- task5-type-distribution
+
+![Event Hub](screenshots/14.png)
+![Event Hub](screenshots/15.png)
+
+## Event Generator
+
+The event generator is implemented in Python and is located under the directory: `src/atm_generator.py`
+
+This script generates simulated ATM transaction events and sends them continuously to the Azure Event Hub. Each event contains fields such as eventTime, area, atmId, accountId, transactionType, amount and currency.
+
+The original configuration values at the beginning of the script were replaced with environment variables. This was done to avoid hardcoding Azure credentials directly in the source code. The script now reads the required values from a local `.env` file:
+
+```
+
+HOST_NAME=...
+SHARED_ACCESS_KEY_NAME=...
+SHARED_ACCESS_KEY=...
+EVENT_HUB_NAME=...
+
+```
+
+The `.env` file is used only locally and is excluded from GitHub through `.gitignore`.
+
+To support loading environment variables from the `.env` file, the `python-dotenv` package was added to `requirements.txt`.
+
+### Run
+
+---
+
+- From the root directory of the project, create and activate a virtual environment:
+
+```
+
+python -m venv .venv
+.venv\Scripts\activate
+
+```
+
+- Install the required dependencies:
+
+`pip install -r requirements.txt`
+
+- Run the event generator:
+
+`python src/atm_generator.py`
+
+If the configuration is correct, the script connects to the Event Hub and starts sending ATM transaction events continuously, as shown below:
+
+![Event Hub](screenshots/g1.png)
+![Event Hub](screenshots/g2.png)
+
+## Queries
+
+The Stream Analytics queries are stored in the `queries/` directory. Each query corresponds to one of the five required tasks and will later be used inside a separate Azure Stream Analytics job.
+
+### Basic Structure
+
+All queries follow the same general structure:
+
+```
+
+SELECT
+...,
+System.Timestamp() AS windowEnd
+INTO
+outputAlias
+FROM
+inputAlias TIMESTAMP BY eventTime
+WHERE
+...
+GROUP BY
+...,
+WindowFunction(...)
+
+```
+
+The `SELECT` clause defines the fields and aggregations that will be written to the output.
+
+The `INTO` clause defines the output alias of the Stream Analytics job. This alias must match the name of the output configured in Azure Stream Analytics.
+
+The `FROM` clause defines the input alias. In this project, the input alias used in the queries is: `atmInput`. This alias will later be configured to read data from the Azure Event Hub.
+
+Each ATM event generated by the Python script contains its own event timestamp in the eventTime field. By using `TIMESTAMP BY eventTime`, Azure Stream Analytics processes the events based on the actual event time instead of only using the time when the event arrived in Azure.
+
+The `WHERE` clause is used only when a query needs to filter specific events before aggregation. For example, some tasks only consider withdrawal transactions.
+
+The `GROUP BY` clause defines how the events are grouped before calculating the aggregations. For example, results can be grouped by area, accountId, or transactionType.
+
+The `WindowFunction(...)` defines the time window over which the stream is analyzed. Since streaming data is continuous, the query needs a time window to decide which events belong together for each calculation.
+
+Finally, this field is included in the output:
+
+`System.Timestamp() AS windowEnd` returns the timestamp associated with the produced result. In windowed aggregations, this is commonly used to indicate the end time of the window for which the result was calculated. This makes the output easier to interpret, because each result row shows not only the aggregation values but also the time period they refer to.
+
+In this project, the input alias is kept the same for all jobs:
+
+`atmInput`
+
+The output aliases are different for each task:
+
+```
+
+task1Output
+task2Output
+task3Output
+task4Output
+task5Output
+
+```
+
+When the Stream Analytics jobs are created in Azure, the input and output aliases must match exactly the names used inside the SQL queries.
+
+### Window Functions
+
+---
+
+Window functions are necessary in stream processing because the data does not have a fixed end. Events arrive continuously, so calculations must be performed over specific time intervals.
+
+This assignment uses three types of windows: Tumbling, Hopping, and Sliding.
+
+**Tumbling Window**
+
+A Tumbling Window splits the stream into fixed-size, non-overlapping time intervals. Each event belongs to exactly one window.
+
+Example:
+
+12:00 - 12:01
+12:01 - 12:02
+12:02 - 12:03
+
+If a query uses:
+
+`TumblingWindow(minute, 1)`
+
+then Azure Stream Analytics calculates one result for each complete one-minute interval.
+
+This type of window is useful when the goal is to produce regular summaries, such as the total number of transactions per area every 1 minute.
+
+**Hopping Window**
+
+A Hopping Window also has a fixed duration, but the windows can overlap. It uses two values: the window size and the hop size.
+
+Example:
+
+`HoppingWindow(minute, 10, 1)`
+
+This means:
+
+Window size: 10 minutes
+Hop size: 1 minute
+
+So, every 1 minute, the query calculates results using the events from the last 10 minutes.
+
+Example intervals:
+
+12:00 - 12:10
+12:01 - 12:11
+12:02 - 12:12
+
+This type of window is useful when the goal is to continuously monitor recent activity, such as counting high-value withdrawals in each area during the last 10 minutes.
+
+**Sliding Window**
+
+A Sliding Window looks for events that occur within a moving time interval. It produces results when events enter or leave the window and the aggregation condition is satisfied.
+
+Example:
+
+`SlidingWindow(second, 30)`
+
+This means that Azure Stream Analytics evaluates activity within a 30-second time range.
+
+This type of window is useful for detecting patterns that can happen at any moment, not only at fixed time boundaries. In this project, it is used to detect burst activity, where an account performs 3 or more transactions within 30 seconds.
+
+For example, if the same account performs transactions at:
+
+12:00:05
+12:00:15
+12:00:25
+
+then all three transactions fall within a 30-second sliding window, and the account can be flagged as suspicious.
+
+## Stream Analytics Jobs
+
+### Example: Task 1 Stream Analytics Job
+
+For each task, a separate Azure Stream Analytics job was created. Each job follows the same pipeline:
+
+Event Hub input → Stream Analytics query → Blob Storage output
+
+Task 1 is presented as the detailed example, while the same process was repeated for Tasks 2–5 with the corresponding query, consumer group, output alias, and Blob container.
+
+First, the Stream Analytics job for Task 1 was created.
+
+![Event Hub](screenshots/s1.png)
+![Event Hub](screenshots/s2.png)
+![Event Hub](screenshots/s3.png)
+
+**Input Configuration**
+
+The input was configured to read events from the Azure Event Hub. The input alias was set to atmInput, which matches the alias used in the SQL query.
+
+For Task 1, the consumer group cg-task1 was selected, so this job can independently read the same event stream without interfering with the other Stream Analytics jobs.
+![Event Hub](screenshots/s4.png)
+![Event Hub](screenshots/s5.png)
+![Event Hub](screenshots/s6.png)
+![Event Hub](screenshots/s7.png)
+
+**Output Configuration**
+
+The output was configured to write the query results to Azure Blob Storage. The output alias was set to task1Output, which matches the INTO task1Output clause in the query.
+
+The selected Blob container for this task was task1-volume-area.
+![Event Hub](screenshots/s8.png)
+![Event Hub](screenshots/s9.png)
+![Event Hub](screenshots/s10.png)
+
+**Query Configuration**
+
+The Task 1 query was added to the Stream Analytics job. This query calculates the number of transactions and the total transaction amount per area using a one-minute tumbling window.
+![Event Hub](screenshots/s11.png)
+
+**Job Execution**
+
+After configuring the input, output, and query, the job overview was checked to confirm that the configuration was complete.
+![Event Hub](screenshots/s16.png)
+![Event Hub](screenshots/s12.png)
+
+The job was then started using the current time as the start time.
+![Event Hub](screenshots/s13.png)
+
+After a few minutes, the job produced output files in the corresponding Blob Storage container.
+![Event Hub](screenshots/s14.png)
+![Event Hub](screenshots/s15.png)
+
+Once the output was verified, the job was stopped to avoid unnecessary resource usage.
+![Event Hub](screenshots/s17.png)
+
+### Outputs
+
+---
+
+The generated output files from Azure Blob Storage were downloaded and stored locally in the `outputs/` directory. Each task has its own output folder, matching the structure of the Blob containers.
+
+```
+
+outputs/
+├── task1-volume-area/
+├── task2-high-value-withdrawals/
+├── task3-burst-account/
+├── task4-avg-withdrawal-area/
+└── task5-type-distribution/
+
+```
+
+### Overview of all Tasks
+
+---
+
+The same process was repeated for the remaining tasks. Each task uses the same Event Hub as input, but a different consumer group, output alias, Blob container, and SQL query.
+
+The screenshots below show the final overview of the Stream Analytics jobs and confirm that the jobs were created successfully.
+
+![Event Hub](screenshots/x1.png)
+![Event Hub](screenshots/x2.png)
+
+```
+
+```
+
+```
+
+```

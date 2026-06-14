@@ -1,8 +1,57 @@
 # Stream Engines: Azure Stream Analytics
 
+## Repository Structure
+
+The repository is organized as follows:
+
+```text
+outputs/
+queries/
+screenshots/
+src/
+.gitignore
+README.md
+report.md
+requirements.txt
+```
+
+- outputs/: contains sample JSON output files downloaded from Azure Blob Storage after running the Stream Analytics jobs.
+- queries/: contains the SQL queries used by the five Azure Stream Analytics jobs.
+- screenshots/: contains the screenshots used to document the Azure setup, generator execution, Stream Analytics jobs, and Blob Storage outputs.
+- src/: contains the Python event generator script.
+- .gitignore: excludes local files that should not be committed, such as .env and the virtual environment.
+- report.md: contains the detailed project documentation and implementation report.
+- requirements.txt: lists the Python dependencies required to run the event generator.
+
 ## Introduction
 
-TODO
+This project implements a real-time stream processing pipeline using Azure Event Hubs, Azure Stream Analytics, and Azure Blob Storage. The goal is to simulate ATM transaction events, process them in real time, and store the aggregated results as JSON files.
+
+The overall architecture of the project is:
+
+`Python ATM Generator → Azure Event Hub → Azure Stream Analytics Jobs → Azure Blob Storage`
+
+The Python event generator simulates ATM transactions and continuously sends them to Azure Event Hub. Each generated event represents a single ATM transaction and includes fields such as the event timestamp, ATM area, ATM identifier, account identifier, transaction type, transaction amount, and currency.
+
+Azure Event Hub acts as the ingestion layer of the pipeline. It receives the continuous stream of ATM transaction events and makes them available to downstream services. It does not perform any analysis itself; its role is to collect and hold the incoming events so they can be processed in real time.
+
+Azure Stream Analytics is used as the stream processing engine. It reads the events from the Event Hub and applies SQL-like queries over time-based windows. Each Stream Analytics job follows the same basic structure:
+
+`Input → Query → Output`
+
+In this project, the input is the Event Hub, the query performs a specific aggregation or detection task, and the output is written to Azure Blob Storage.
+
+Azure Blob Storage is used as the final storage layer. Each task writes its results to a separate Blob container in JSON format. This makes it possible to verify that the Stream Analytics jobs produced valid output files for all required tasks.
+
+The project includes five Stream Analytics tasks:
+
+1. Transaction volume per area using a tumbling window.
+2. High-value withdrawals using a hopping window.
+3. Burst activity detection per account using a sliding window.
+4. Average withdrawal amount per area using a tumbling window.
+5. Transaction type distribution per area using a hopping window.
+
+The implementation demonstrates how real-time events can be ingested, processed with window-based stream queries, and stored automatically as structured output files in Azure.
 
 ## Azure Environment Setup
 
@@ -113,10 +162,12 @@ This script generates simulated ATM transaction events and sends them continuous
 The original configuration values at the beginning of the script were replaced with environment variables. This was done to avoid hardcoding Azure credentials directly in the source code. The script now reads the required values from a local `.env` file:
 
 ```
+
 HOST_NAME=...
 SHARED_ACCESS_KEY_NAME=...
 SHARED_ACCESS_KEY=...
 EVENT_HUB_NAME=...
+
 ```
 
 The `.env` file is used only locally and is excluded from GitHub through `.gitignore`.
@@ -130,8 +181,10 @@ To support loading environment variables from the `.env` file, the `python-doten
 - From the root directory of the project, create and activate a virtual environment:
 
 ```
+
 python -m venv .venv
 .venv\Scripts\activate
+
 ```
 
 - Install the required dependencies:
@@ -156,18 +209,20 @@ The Stream Analytics queries are stored in the `queries/` directory. Each query 
 All queries follow the same general structure:
 
 ```
+
 SELECT
-    ...,
-    System.Timestamp() AS windowEnd
+...,
+System.Timestamp() AS windowEnd
 INTO
-    outputAlias
+outputAlias
 FROM
-    inputAlias TIMESTAMP BY eventTime
+inputAlias TIMESTAMP BY eventTime
 WHERE
-    ...
+...
 GROUP BY
-    ...,
-    WindowFunction(...)
+...,
+WindowFunction(...)
+
 ```
 
 The `SELECT` clause defines the fields and aggregations that will be written to the output.
@@ -195,11 +250,13 @@ In this project, the input alias is kept the same for all jobs:
 The output aliases are different for each task:
 
 ```
+
 task1Output
 task2Output
 task3Output
 task4Output
 task5Output
+
 ```
 
 When the Stream Analytics jobs are created in Azure, the input and output aliases must match exactly the names used inside the SQL queries.
@@ -336,12 +393,14 @@ Once the output was verified, the job was stopped to avoid unnecessary resource 
 The generated output files from Azure Blob Storage were downloaded and stored locally in the `outputs/` directory. Each task has its own output folder, matching the structure of the Blob containers.
 
 ```
+
 outputs/
 ├── task1-volume-area/
 ├── task2-high-value-withdrawals/
 ├── task3-burst-account/
 ├── task4-avg-withdrawal-area/
 └── task5-type-distribution/
+
 ```
 
 ### Overview of all Tasks
@@ -354,6 +413,10 @@ The screenshots below show the final overview of the Stream Analytics jobs and c
 
 ![Event Hub](screenshots/x1.png)
 ![Event Hub](screenshots/x2.png)
+
+```
+
+```
 
 ```
 
