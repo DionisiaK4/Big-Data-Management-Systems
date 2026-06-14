@@ -413,11 +413,3 @@ The screenshots below show the final overview of the Stream Analytics jobs and c
 
 ![Event Hub](screenshots/x1.png)
 ![Event Hub](screenshots/x2.png)
-
-```
-
-```
-
-```
-
-```
