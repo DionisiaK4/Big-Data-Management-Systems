@@ -49,6 +49,8 @@ Hopping window: επικαλυπτόμενα παράθυρα. Έχει window s
 
 Sliding window: βγάζει αποτέλεσμα όταν αλλάζει κάτι μέσα στο παράθυρο. Χρήσιμο για detection τύπου “αν μέσα σε 30 δευτερόλεπτα έγιναν 3+ transactions”.
 
+Το generator στέλνει events σαν JSON, άρα τα queries του Azure Stream Analytics μπορούν να χρησιμοποιήσουν απευθείας αυτά τα field names.
+
 # Set Up
 
 Για το Event Hub (Partitions)
@@ -70,14 +72,6 @@ Blob ή SQL Database
 # Extra
 
 Blob Storage = αποθήκευση αποτελεσμάτων ως αρχεία. Azure SQL Database = αποθήκευση αποτελεσμάτων ως γραμμές σε πίνακες.
-
-# Run
-
-python -m venv .venv
-.venv\Scripts\activate
-
-pip install -r requirements.txt
-python src/atm_generator.py
 
 # GENERAL
 
